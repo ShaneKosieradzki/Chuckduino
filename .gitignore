@@ -1,4 +1,5 @@
 .pio
 .vscode
 .github
-/CMakeListsPrivate.txt
+CMakeListsPrivate.txt
+CMakeLists.txt
