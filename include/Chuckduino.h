@@ -53,7 +53,7 @@ public:
         auto euclidianDistance = [&](byte* p, byte* q) { // L2 norm
             int sum = 0;
             for(unsigned int i = 0; i < precepts.bufferLength; i++)
-                sum = sq(q[i] - p[i]);
+                sum = sum + sq(q[i] - p[i]);
             return sqrt(sum);
         };
 
