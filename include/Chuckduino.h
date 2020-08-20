@@ -17,6 +17,7 @@ public:
     };
 
     struct Precepts {
+        unsigned int bufferLength;
         byte* leftBuffer;
         byte* rightBuffer;
     };
@@ -44,14 +45,26 @@ public:
         Camera.readFrame(data);
         Serial.write(data, bytesPerFrame);
 
-        // TODO: convert raw pixel data into formatted 'Chuckduino::Precepts' frame
+        // TODO: convert raw pixel data into formatted 'Chuckduino::Precepts' observation
     }
 
     static inline Chuckduino::Actions deliberate(Chuckduino::Precepts precepts) {
-        // TODO: convert abstract agent precepts (sensor outputs) into abstract agent actions (actuator inputs)
+        static Chuckduino::Precepts _prevPrecepts; // TODO: need to initialize and update
+        auto euclidianDistance = [&](byte* p, byte* q) { // L2 norm
+            int sum = 0;
+            for(unsigned int i = 0; i < precepts.bufferLength; i++)
+                sum = sq(q[i] - p[i]);
+            return sqrt(sum);
+        };
 
-        Chuckduino::HeadRotation headRotation = Chuckduino::HeadRotation::Left;
-        Chuckduino::Catchphrase catchphrase = Chuckduino::Catchphrase::Bazinga;
+        const double distanceThreshold = 0; // adjustable parameter
+        double leftDistance = euclidianDistance(_prevPrecepts.leftBuffer, precepts.rightBuffer);
+        double rightDistance = euclidianDistance(_prevPrecepts.rightBuffer, precepts.rightBuffer);
+
+        Chuckduino::HeadRotation headRotation =
+                leftDistance >= rightDistance && leftDistance > distanceThreshold ? Chuckduino::HeadRotation::Left :
+                rightDistance > distanceThreshold ? Chuckduino::HeadRotation::Right : Chuckduino::HeadRotation::None;
+        Chuckduino::Catchphrase catchphrase = Chuckduino::Catchphrase::Bazinga; // TODO: rng catchphrase?
         Chuckduino::Actions actions{headRotation,catchphrase};
         return actions;
     }
