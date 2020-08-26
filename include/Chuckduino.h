@@ -17,7 +17,9 @@ public:
     };
 
     struct Precepts {
+        // The number of elements in `leftBuffer` or `rightBuffer` (they need to be the same length)
         unsigned int bufferLength;
+
         byte* leftBuffer;
         byte* rightBuffer;
     };
@@ -39,14 +41,96 @@ public:
         }
     }
 
+    /* --------------------------------------------------Kate-------------------------------------------------- */
+
     static inline Chuckduino::Precepts getPrecepts() {
+
+        // The number of bytes in a single camera frame
         int bytesPerFrame = Camera.width() * Camera.height();
+
+        /* A buffer (aka C-Style list) of bytes that represent a single camera frame
+         * where each byte represents the grayscale-color of a single pixel.
+         */
         byte* data = new byte[bytesPerFrame];
+
+        // `readFrame` fills `data` with the bytes from the camera of the current frame
         Camera.readFrame(data);
-        Serial.write(data, bytesPerFrame);
 
         // TODO: convert raw pixel data into formatted 'Chuckduino::Precepts' observation
+
+        /* If we were to visualize `data` we could think of it as a long line of pixels.
+         *
+         *    +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+         *    |     |     |     |     |     |     |     |     |     |     |     |     |     |     |  ...
+         *    +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+         *
+         * Since `data` is representing a rectangular frame, it is more natural to think of `data` as a rectangular.
+         * If you were to take `data` and create a new line every `Camera.width()` bytes
+         * you will have the desired rectangular representation.
+         *
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |     |     |     |     |     |     |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |     |     |     |     |     |     |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |     |     |     |     |     |     |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |     |     |     |     |     |     |
+         *    +-----+-----+-----+-----+-----+-----+
+         *
+         * You're job is to split `data` into to smaller byte buffers (aka C-Style list),
+         * one buffer for the left and right half of the frame.
+         * You can see a small example of how this division will go bellow:
+         *
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |  L  |  L  |  L  |  R  |  R  |  R  |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |  L  |  L  |  L  |  R  |  R  |  R  |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |  L  |  L  |  L  |  R  |  R  |  R  |
+         *    +-----+-----+-----+-----+-----+-----+
+         *    |  L  |  L  |  L  |  R  |  R  |  R  |
+         *    +-----+-----+-----+-----+-----+-----+
+         *
+         *
+         *
+         * To accomplish this goal you will need to:
+         *    1.) Dynamically allocate two buffers using `malloc` (https://rb.gy/nbtile)
+         *    2.) Iterate over `data` pulling the appropriate bytes for the L & R buffers
+         * */
+
+        /* ---------------------Memory Allocation--------------------- */
+        // Determine the the number of bytes each sub-buffer needs
+        // based on the size of the original frame (aka `bytesPerFrame`)
+        unsigned int bufferLength;
+
+        // Use `malloc` and `sizeof` to dynamically allocate
+        // enough bytes for eac buffer
+        byte* leftBuffer;
+        byte* rightBuffer;
+
+        /* ----------------------Data Extraction---------------------- */
+
+        // This for loop will iterate for 0-length(data).
+        // Use the loop to iterate over `data` and
+        // fill `leftBuffer` and `rightBuffer` with the appropriate bytes
+        for(int i = 0; i < bytesPerFrame; i++) {
+            byte current_byte = data[i];
+
+            // Programmatically determine which buffer
+            // to put `current_byte` into
+        }
+
+        /* ----------------------Data Formatting---------------------- */
+
+        // In this section we take the variables we created and
+        // organize them into a `Precepts` struct (No Action necessary).
+        Precepts percepts {bufferLength, leftBuffer, rightBuffer};
+        return percepts;
+        
     }
+
+    /* -------------------------------------------------------------------------------------------------------- */
 
     static inline Chuckduino::Actions deliberate(Chuckduino::Precepts precepts) {
         static Chuckduino::Precepts _prevPrecepts; // TODO: need to initialize and update
