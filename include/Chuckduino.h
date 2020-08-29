@@ -51,7 +51,7 @@ public:
         /* A buffer (aka C-Style list) of bytes that represent a single camera frame
          * where each byte represents the grayscale-color of a single pixel.
          */
-        byte* data = new byte[bytesPerFrame];
+        byte* data = (byte*) malloc(sizeof(byte)*bytesPerFrame);
 
         // `readFrame` fills `data` with the bytes from the camera of the current frame
         Camera.readFrame(data);
@@ -105,20 +105,29 @@ public:
         unsigned int bufferLength;
 
         // Use `malloc` and `sizeof` to dynamically allocate
-        // enough bytes for eac buffer
-        byte* leftBuffer;
-        byte* rightBuffer;
+        // enough bytes for each buffer
+        byte* leftBuffer = (byte*) malloc(sizeof(byte)*bytesPerFrame/2);
+        byte* rightBuffer = (byte*) malloc(sizeof(byte)*bytesPerFrame/2);
 
         /* ----------------------Data Extraction---------------------- */
 
         // This for loop will iterate for 0-length(data).
         // Use the loop to iterate over `data` and
         // fill `leftBuffer` and `rightBuffer` with the appropriate bytes
+        int l = 0;
+        int r = 0;
+        int remainder = 0;
         for(int i = 0; i < bytesPerFrame; i++) {
+            remainder = i % Camera.width();
             byte current_byte = data[i];
-
-            // Programmatically determine which buffer
-            // to put `current_byte` into
+            if (remainder < Camera.width()/2) {
+                leftBuffer[l] = current_byte;
+                l++;
+            }
+            else {
+                rightBuffer[r] = current_byte;
+                r++;
+            }
         }
 
         /* ----------------------Data Formatting---------------------- */
