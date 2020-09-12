@@ -3,12 +3,19 @@
 
 #include <Arduino.h>
 #include <Arduino_OV767X.h>
+#include <Servo.h>
+
+#define SERVO_PIN 13
+#define SERVO_MIN_PWM 1000
+#define SERVO_MAX_PWM 2000
 
 #define BUFFER_LENGTH 19200
-#define START Serial.begin
+
+Servo servo;
 
 class Chuckduino {
 public:
+    // region Enums
     enum HeadRotation {
         Left,
         Right,
@@ -29,17 +36,26 @@ public:
         Chuckduino::HeadRotation headRotation;
         Chuckduino::Catchphrase catchphrase;
     };
+    // endregion
 
 public:
+    static const int _servo_step_size = 10;  // how much to turn the head in degrees
+
+public:
+    // region Methods
     static inline void setup() {
-        START(9600);
-        while (!Serial);
+        Serial.begin(9600);
+//        while (!Serial);
 
         // configure camera
         if (!Camera.begin(QQVGA, GRAYSCALE, 1)) {
             Serial.println("Failed to initialize camera!");
             while (1);
         }
+        Serial.println("Camera configured");
+
+        servo.attach(SERVO_PIN, SERVO_MIN_PWM, SERVO_MAX_PWM);
+        Serial.println("Servo configured");
     }
 
     /* --------------------------------------------------Kate-------------------------------------------------- */
@@ -96,24 +112,16 @@ public:
          *
          *
          * To accomplish this goal you will need to:
-         *    1.) Dynamically allocate two buffers using `malloc` (https://rb.gy/nbtile)
-         *    2.) Iterate over `data` pulling the appropriate bytes for the L & R buffers
+         *    1.) Iterate over `data` pulling the appropriate bytes for the L & R buffers
          * */
 
-        /* ---------------------Memory Allocation--------------------- */
-        // Determine the the number of bytes each sub-buffer needs
-        // based on the size of the original frame (aka `bytesPerFrame`)
 
-        // Use `malloc` and `sizeof` to dynamically allocate
-        // enough bytes for each buffer
-        byte* leftBuffer = (byte*) malloc(sizeof(byte)*bytesPerFrame/2);
-        byte* rightBuffer = (byte*) malloc(sizeof(byte)*bytesPerFrame/2);
 
         /* ----------------------Data Extraction---------------------- */
-
         // This for loop will iterate for 0-length(data).
         // Use the loop to iterate over `data` and
         // fill `leftBuffer` and `rightBuffer` with the appropriate bytes
+        Precepts percepts {};
         int l = 0;
         int r = 0;
         int remainder = 0;
@@ -121,11 +129,11 @@ public:
             remainder = i % Camera.width();
             byte current_byte = data[i];
             if (remainder < Camera.width()/2) {
-                leftBuffer[l] = current_byte;
+                percepts.leftBuffer[l] = current_byte;
                 l++;
             }
             else {
-                rightBuffer[r] = current_byte;
+                percepts.rightBuffer[r] = current_byte;
                 r++;
             }
         }
@@ -134,7 +142,6 @@ public:
 
         // In this section we take the variables we created and
         // organize them into a `Precepts` struct (No Action necessary).
-        Precepts percepts {leftBuffer, rightBuffer};
         return percepts;
         
     }
@@ -163,8 +170,31 @@ public:
     }
 
     static inline void takeActions(Chuckduino::Actions actions) {
-        // TODO: convert abstract agent actions into actuator inputs
+        int current_angle = servo.read();
+        bool turning_head = true;
+        int new_angle = current_angle;
+
+        switch(actions.headRotation) {
+            case HeadRotation::Right:
+                Serial.println("Turning R");
+                new_angle = current_angle + _servo_step_size;
+                if(new_angle > 180) new_angle = 180;
+                break;
+            case HeadRotation::Left:
+                Serial.println("Turning L");
+                new_angle = current_angle - _servo_step_size;
+                if(new_angle < 0) new_angle = 0;
+                break;
+            case HeadRotation::None:
+                Serial.println("Turning None");
+                turning_head = false;
+                break;
+        }
+
+        if(turning_head) servo.write(new_angle);
     }
+    // endregion
+
 };
 
 #endif /* _CHUCKDUINO_H_ */

@@ -8,4 +8,6 @@ void loop() {
     Chuckduino::Precepts precepts = Chuckduino::getPrecepts();
     Chuckduino::Actions actions = Chuckduino::deliberate(precepts);
     Chuckduino::takeActions(actions);
+
+    delay(50);
 }
