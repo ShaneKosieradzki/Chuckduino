@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <Arduino_OV767X.h>
 
+#define BUFFER_LENGTH 19200
+#define START Serial.begin
+
 class Chuckduino {
 public:
     enum HeadRotation {
@@ -18,10 +21,8 @@ public:
 
     struct Precepts {
         // The number of elements in `leftBuffer` or `rightBuffer` (they need to be the same length)
-        unsigned int bufferLength;
-
-        byte* leftBuffer;
-        byte* rightBuffer;
+        byte leftBuffer[BUFFER_LENGTH];
+        byte rightBuffer[BUFFER_LENGTH];
     };
 
     struct Actions {
@@ -31,7 +32,7 @@ public:
 
 public:
     static inline void setup() {
-        Serial.begin(9600);
+        START(9600);
         while (!Serial);
 
         // configure camera
@@ -102,7 +103,6 @@ public:
         /* ---------------------Memory Allocation--------------------- */
         // Determine the the number of bytes each sub-buffer needs
         // based on the size of the original frame (aka `bytesPerFrame`)
-        unsigned int bufferLength;
 
         // Use `malloc` and `sizeof` to dynamically allocate
         // enough bytes for each buffer
@@ -134,7 +134,7 @@ public:
 
         // In this section we take the variables we created and
         // organize them into a `Precepts` struct (No Action necessary).
-        Precepts percepts {bufferLength, leftBuffer, rightBuffer};
+        Precepts percepts {leftBuffer, rightBuffer};
         return percepts;
         
     }
@@ -145,7 +145,7 @@ public:
         static Chuckduino::Precepts _prevPrecepts; // TODO: need to initialize and update
         auto euclidianDistance = [&](byte* p, byte* q) { // L2 norm
             int sum = 0;
-            for(unsigned int i = 0; i < precepts.bufferLength; i++)
+            for(unsigned int i = 0; i < BUFFER_LENGTH; i++)
                 sum = sum + sq(q[i] - p[i]);
             return sqrt(sum);
         };
